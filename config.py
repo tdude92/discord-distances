@@ -7,12 +7,14 @@ config = {
     "TOKEN": None,
     "PREFIX": ">dd",
     "ADMINS": [],
+    "PORT": 5000,
     "BLACKLIST": []
 }
 
 
 config["TOKEN"] = input("Input Discord bot token: ")
-config["PREFIX"] = input("Set bot prefix: (>dd) ") or config["PREFIX"]
+config["PREFIX"] = input(f"Set bot prefix: ({config['PREFIX']}) ") or config["PREFIX"]
+config["PORT"] = input(f"Choose server port: ({config['PORT']}) ") or config["PORT"]
 config["ADMINS"].append(input("Paste your Discord profile ID: "))
 
 
