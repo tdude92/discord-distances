@@ -1,0 +1,24 @@
+{
+  "name": "discord-distances",
+  "version": "1.0.0",
+  "description": "A Discord bot that computes and neatly displays the similarity between multiple users' texting styles. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdude92/discord-distances.git"
+  },
+  "author": "Trevor Du",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tdude92/discord-distances/issues"
+  },
+  "homepage": "https://github.com/tdude92/discord-distances#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "socket.io": "^4.1.1",
+    "socket.io-client": "^4.1.1"
+  }
+}
