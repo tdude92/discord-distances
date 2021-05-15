@@ -1,3 +1,5 @@
+'use strict';
+
 const structs = require('../utils/structures.js');
 
 module.exports = {

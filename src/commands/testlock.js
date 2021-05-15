@@ -1,4 +1,5 @@
-const { time } = require('console');
+'use strict';
+
 const {EventEmitter} = require('events');
 const utils = require('../utils/utils.js');
 
