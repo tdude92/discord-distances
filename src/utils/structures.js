@@ -33,23 +33,23 @@ class Lock extends EventEmitter {
         // func: Function
         if (this._locked && cmdObj.lockable) {
             this.once('unlock', () => {
-                return cmdObj.execute(message, args);
+                return cmdObj.execute(message, args, this._socket); // Pass socket to communicate with backend
             });
         } else {
-            return cmdObj.execute(message, args)
+            return cmdObj.execute(message, args, this._socket); // Pass socket to communicate with backend
         }
     }
 
     async lock() {
         this._locked = true;
         this.emit('lock');
-        console.log("[MUTEX] Locked")
+        console.log("[MUTEX] Locked");
     }
 
     async unlock() {
         this._locked = false;
-        this.emit('unlock')
-        console.log("[MUTEX] Unlocked")
+        this.emit('unlock');
+        console.log("[MUTEX] Unlocked");
     }
 
     get locked() {

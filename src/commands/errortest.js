@@ -1,6 +1,5 @@
-const structs = require('../structures.js');
+const structs = require('../utils/structures.js');
 
-// TODO: Docs
 module.exports = {
     name: 'errortest',
     args: [],

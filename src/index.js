@@ -3,7 +3,7 @@ const { exec } = require('child_process');
 const Discord = require('discord.js');
 const {Server} = require('socket.io');
 
-const structs = require('./structures.js');
+const structs = require('./utils/structures.js');
 
 // Import config.json
 let config;
@@ -19,7 +19,7 @@ try {
     process.exit(1);
 }
 
-// Setup Discord
+// Set up Discord
 const client = new Discord.Client();
 client.commands = new Discord.Collection();
 
@@ -45,6 +45,7 @@ io.on('connection', (socket) => {
     // Create mutex
     let lock = new structs.Lock(socket);
 
+    // discord.js client event handlers
     client.once('ready', () => {
         console.log('Discord Bot is ready to go!');
     });
@@ -55,19 +56,28 @@ io.on('connection', (socket) => {
 
         // Parse message
         let args = message.content.slice(config.PREFIX.length)
-                                .trim()
-                                .split(' ')
-                                .filter(x => x != ''); // In case there are multiple spaces between words.
+                                  .trim()
+                                  .split(' ')
+                                  .filter(x => x != ''); // In case there are multiple spaces between words.
         
         const command = args.shift();
-        if (!client.commands.has(command)) {return;}
+
+        // Command is unknown
+        if (!client.commands.has(command)) {
+            message.channel.send(`Unknown Command: ${message.content}\nType "${config.PREFIX} help" for a list of commands.`);
+            return;
+        }
 
         try {
-            // Attempt to execute the command
             let cmdObj = client.commands.get(command);
 
+            // Throw CmdError if a non-admin tries to invoke an admin command
             if (cmdObj.admin && !config.ADMINS.includes(message.author.id)) {throw new structs.CmdError('Invalid permissions')}
-            await lock.attempt(cmdObj, message, args, socket); // Pass socket to communicate with backend
+            
+            // Execute the command
+            // If lock is active, lockable commands will wait for unlock
+            await lock.attempt(cmdObj, message, args);
+            await message.react('👍');
         } catch (e) {
             if (e instanceof structs.CmdError) {
                 // Error is the user's fault
@@ -82,15 +92,6 @@ io.on('connection', (socket) => {
     });
     
     client.login(config.TOKEN);
-
-    /* TODO delet
-    lock.on('lock', () => {
-        console.log('locked', lock.locked);
-    }).on('unlock', () => {
-        console.log('locked', lock.locked);
-    });
-    socket.emit('update_models');
-    */
 });
 
 // Spawn child process and run backend server.

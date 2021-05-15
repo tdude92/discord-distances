@@ -1,7 +1,6 @@
-// TODO: Docs
 module.exports = {
     name: 'lockedecho',
-    args: [],
+    args: ['text'],
     desc: 'Echoes a user. Affected by mutex for debugging purposes.',
     lockable: true,
     admin: true,
