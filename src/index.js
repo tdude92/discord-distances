@@ -1,9 +1,10 @@
 'use strict';
 
 const fs = require('fs');
-const { exec } = require('child_process');
+const {exec} = require('child_process');
 const Discord = require('discord.js');
 const {Server} = require('socket.io');
+const utils = require('./utils/utils.js');
 
 const structs = require('./utils/structures.js');
 
@@ -19,6 +20,11 @@ try {
         console.error(e);
     }
     process.exit(1);
+}
+
+// Create data/ if not exists
+if (!fs.existsSync('./data/')) {
+    fs.mkdirSync('./data/');
 }
 
 // Set up Discord
@@ -53,8 +59,23 @@ io.on('connection', (socket) => {
     });
 
     client.on('message', async message => {
-        // Ignore messages from bots and without prefix
-        if (!message.content.startsWith(config.PREFIX) || message.author.bot) {return;}
+        // Ignore messages from bots
+        if (message.author.bot) {return;}
+
+        // Collect message that is not a command
+        if (!message.content.startsWith(config.PREFIX)) {
+            let msgs = message.content.trim()
+                                      .split('\n')
+                                      .filter(x => x != ''); // Split multiline messages into msgs
+
+            msgs.forEach(msg => {
+                fs.appendFile(`./data/${message.author.id}`, msg + '\n', err => {
+                    if (err) throw err;
+                    console.log(`Logged message from ${message.author.username} (${message.author})`);
+                });
+            });
+            return;
+        }
 
         // Parse message
         let args = message.content.slice(config.PREFIX.length)
@@ -94,6 +115,19 @@ io.on('connection', (socket) => {
     });
     
     client.login(config.TOKEN);
+    
+    // TODO: send "NOT DATA TO SERVE!" if models have not been updated yet.
+    // Update models on startup and queue future updates with setInterval
+    socket.emit('update');
+    
+    let time = new Date();
+    setTimeout(() => {
+        setInterval(() => {
+            socket.emit('update');
+        }, config.UPDATE_INTERVAL*60*60*1000);
+    }, (config.UPDATE_INTERVAL - (time.getHours()%config.UPDATE_INTERVAL || config.UPDATE_INTERVAL))*60*60*1000 + utils.getHourMilliseconds(time));
+    // The 10km long line above computes the number of milliseconds between current time and next update.
+    // Updates occur every config.UPDATE_INTERVAL hours after 00:00 the day index.js is run.
 });
 
 // Spawn child process and run backend server.

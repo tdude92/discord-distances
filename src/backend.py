@@ -1,6 +1,7 @@
 import socketio
+import gensim
 import json
-import time # TODO remove
+import time
 import sys
 
 # Load config
@@ -49,17 +50,16 @@ def on_unlock(): # TODO: add nonces + repeating unlock calls?
 
 # Updates word2vec models
 @sio.on("update")
-def on_update(nonce):
+def on_update():
     sys.stdout.write("[BACKEND] Updating models")
     sio.emit("lock")
 
     # TODO stuff
-    time.sleep(10)
+    time.sleep(1)
     
     sio.emit("unlock")
     sys.stdout.write("[BACKEND] Finished updating models")
 
-    sio.emit(nonce)
 
 
 sio.connect(f"http://localhost:{config['PORT']}")
