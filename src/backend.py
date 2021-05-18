@@ -61,5 +61,4 @@ def on_update():
     sys.stdout.write("[BACKEND] Finished updating models")
 
 
-
 sio.connect(f"http://localhost:{config['PORT']}")

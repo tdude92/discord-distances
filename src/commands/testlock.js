@@ -15,18 +15,8 @@ module.exports = {
         socket.emit('lock', args[0], nonce);
 
         // Handles timeouts, deactivates lock in event of error, etc.
-        let timer = new EventEmitter();
-        let timeoutCallback = () => {
+        utils.onTimeout(socket, nonce, Number(args[0])*1000 + 10000, () => {
             socket.emit('unlock');
-        };
-
-        timer.once(nonce, timeoutCallback);
-        socket.once(nonce, () => {
-            timer.removeListener(nonce, timeoutCallback);
         });
-
-        setTimeout(() => {
-            timer.emit(nonce);
-        }, Number(args[0])*1000 + 10000);
     }
 };

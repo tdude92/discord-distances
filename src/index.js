@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
     
     client.login(config.TOKEN);
     
-    // TODO: send "NOT DATA TO SERVE!" if models have not been updated yet.
+    // TODO: send "NO DATA TO SERVE!" if models have not been updated yet.
     // Update models on startup and queue future updates with setInterval
     socket.emit('update');
     
@@ -139,6 +139,7 @@ backend.stdout.on('data', (data) => {
 
 backend.stderr.on('data', (data) => {
     console.log(data.toString());
+    process.exit(1);
 });
 
 backend.on('exit', (code) => {
