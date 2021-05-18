@@ -27,18 +27,15 @@ class Lock extends EventEmitter {
         });
     }
 
-    async attempt(cmdObj, message, args) {
-        // If a command is lockable (and the lock is active),
-        // hold it until the unlock event is emitted.
-        
-        // args: Array
-        // func: Function
-        if (this._locked && cmdObj.lockable) {
+    async attempt(func, args) {
+        // If lock is active, call the function on unlock
+        // Otherwise, just call the function
+        if (this._locked) {
             this.once('unlock', () => {
-                return cmdObj.execute(message, args, this._socket); // Pass socket to communicate with backend
+                return func(...args);
             });
         } else {
-            return cmdObj.execute(message, args, this._socket); // Pass socket to communicate with backend
+            return func(...args);
         }
     }
 

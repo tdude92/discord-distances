@@ -69,6 +69,7 @@ io.on('connection', (socket) => {
                                       .filter(x => x != ''); // Split multiline messages into msgs
 
             msgs.forEach(msg => {
+                // TODO this needs to be locked
                 fs.appendFile(`./data/${message.author.id}`, msg + '\n', err => {
                     if (err) throw err;
                     console.log(`Logged message from ${message.author.username} (${message.author})`);
@@ -99,7 +100,11 @@ io.on('connection', (socket) => {
             
             // Execute the command
             // If lock is active, lockable commands will wait for unlock
-            await lock.attempt(cmdObj, message, args);
+            if (cmdObj.lockable) {
+                await lock.attempt(cmdObj.execute, [message, args, socket]);
+            } else {
+                await cmdObj.execute(message, args, socket);
+            }
             await message.react('👍');
         } catch (e) {
             if (e instanceof structs.CmdError) {
@@ -139,7 +144,6 @@ backend.stdout.on('data', (data) => {
 
 backend.stderr.on('data', (data) => {
     console.log(data.toString());
-    process.exit(1);
 });
 
 backend.on('exit', (code) => {

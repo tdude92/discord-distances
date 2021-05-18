@@ -1,0 +1,13 @@
+The plan TM:
+
+1. Iterate through each file in data/
+1.1. Compile all textlogs into one gigantic boi to build vocab
+2. Load words and train a word2vec model for a couple iterations
+3. Pull the embedding params and yeet it into cache/models/ (and a dictionary for later use)
+
+BE CAREFUL WITH MEMORY! DELETE UNUSED MODELS
+
+Computing distances:
+1. Precompute sum of word cosine distances for each pair of embeddings and yeet into cache/distances.json
+    This will be a 2d dictionary
+2. Compute TSNE and save a plot using pyplot
