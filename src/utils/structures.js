@@ -39,6 +39,19 @@ class Lock extends EventEmitter {
         }
     }
 
+    async attemptCmd(func, args, message) {
+        // Same as attempt but assumes func is a cmdObj.execute
+        // And notifies command caller that the bot is currently locked
+        if (this._locked) {
+            this.once('unlock', () => {
+                return func(...args);
+            });
+            message.channel.send('Currently performing heavy computations. Will serve result shortly :)');
+        } else {
+            return func(...args);
+        }
+    }
+
     async lock() {
         this._locked = true;
         this.emit('lock');

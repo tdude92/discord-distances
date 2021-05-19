@@ -103,7 +103,7 @@ io.on('connection', (socket) => {
             // Execute the command
             // If lock is active, lockable commands will wait for unlock
             if (cmdObj.lockable) {
-                await lock.attempt(cmdObj.execute, [message, args, socket]);
+                await lock.attemptCmd(cmdObj.execute, [message, args, socket], message);
             } else {
                 await cmdObj.execute(message, args, socket);
             }
