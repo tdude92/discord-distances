@@ -1,20 +1,13 @@
 import socketio
-import gensim.downloader
-from gensim.models import Word2Vec
-
+import numpy as np
+from scipy.spatial import distance
+from gensim.models import Word2Vec, KeyedVectors
 import json
 import time
 import random
+import re
 import sys
 import os
-
-# MODEL PARAMS
-BASEMODEL_PATH = "./models/basemodel.txt"
-MODEL_PARAMS = {
-    "vector_size": 100,
-    "min_count": 2,
-    "epochs": 10
-}
 
 # Load config
 with open("./config.json", "r") as rh:
@@ -27,48 +20,48 @@ sio = socketio.Client()
 
 @sio.event
 def connect():
-    sys.stdout.write("[BACKEND] I'm connected!")
+    print("[BACKEND] I'm connected!")
 
 
 @sio.event
 def disconnect():
-    sys.stdout.write("[BACKEND] I'm disconnected!")
+    print("[BACKEND] I'm disconnected!")
     exit()
 
 
 @sio.event
 def connect_error():
-    sys.stdout.write("[BACKEND] The connection failed!")
+    print("[BACKEND] The connection failed!")
     exit()
 
 
 @sio.on("lock") # Debugging/Testing purposes
 def on_lock(seconds, nonce):
-    sys.stdout.write(f"[BACKEND] Locking for {seconds} seconds")
+    print(f"[BACKEND] Locking for {seconds} seconds")
     sio.emit("lock")
 
     time.sleep(int(seconds))
 
     sio.emit("unlock")
-    sys.stdout.write("[BACKEND] Unlocked")
+    print("[BACKEND] Unlocked")
 
     sio.emit(nonce)
 
 
 @sio.on("unlock")
-def on_unlock(): # TODO: add nonces + repeating unlock calls?
+def on_unlock():
     sio.emit("unlock")
-    sys.stdout.write("[BACKEND] Unlocked")
+    print("[BACKEND] Unlocked")
 
 
 # Updates word2vec models
 @sio.on("update")
 def on_update():
-    sys.stdout.write("[BACKEND] Updating models")
+    print("[BACKEND] Updating models")
     sio.emit("lock")
-    
+
     # Write combined data into cache/combined_data.txt
-    """with open("./cache/combined_data.txt", "w") as wh:
+    with open("./cache/combined_data.txt", "w") as wh:
         lines = []
         for file in os.listdir("./data/"):
             with open("./data/" + file, "r") as rh:
@@ -78,25 +71,79 @@ def on_update():
             if sys.getsizeof(lines) > 10*1000*1000:
                 random.shuffle(lines)
                 wh.writelines(lines)
+                lines = []
         # Write last bit of lines into file
         random.shuffle(lines)
         wh.writelines(lines)
         del lines
 
+    base_model = Word2Vec(
+        corpus_file = "./cache/combined_data.txt",
+        vector_size = 100,
+        min_count = 1,
+        workers = 4,
+        max_vocab_size = 50000,
+        epochs = 10
+    )
+
     # Iterate through each textlog and train a model
-    for file in os.listdir("./data/"):
+    uids = os.listdir("./data/")
+    for uid in uids:
+        # Create a copy of base_model and continue training
         model = Word2Vec(
-            corpus_file = "./cache/combined_data.txt",
             vector_size = 100,
-            min_count = 2,
-            workers = 4,
-            max_vocab_size = 50000,
-            epochs = 10
-        )"""
-    time.sleep(5)
+            min_count = 1,
+            workers = 4
+        )
+        model.reset_from(base_model)
+        model.wv.vectors = np.copy(base_model.wv.vectors)
+
+        # Next two lines won't work if models do not use negative sampling
+        model.syn1neg = np.copy(base_model.syn1neg)
+        model.wv.vectors_lockf = np.ones(1, dtype=np.float32)
+
+        # Fine tune model
+        with open(f"./data/{uid}", "r") as rh:
+            lines = rh.readlines()
+        
+        model.train(
+            corpus_iterable = lines,
+            total_examples = model.corpus_count,
+            epochs = 15
+        )
+
+        # Write keyedvectors to cache
+        model.wv.save(f"./cache/models/{uid}.kv")
+        del model
     
+    # Compute cosine distance sums
+    distances = {uid:{} for uid in uids}
+    for uid1 in uids:
+        for uid2 in uids:
+            if distances[uid2].get(uid1):
+                # Already computed distance between two models
+                continue
+
+            if uid1 != uid2:
+                total = 0
+                
+                # Load vectors
+                vecs1 = KeyedVectors.load(f"./cache/models/{uid1}.kv").vectors
+                vecs2 = KeyedVectors.load(f"./cache/models/{uid2}.kv").vectors
+
+                # Sum of cosine distances of every word
+                for i in range(vecs1.shape[0]):
+                    total += distance.cosine(vecs1[i], vecs2[i])
+
+                distances[uid1][uid2] = total
+    
+    # Write distances to cache
+    # TODO maybe delete if unused
+    with open("./cache/distances.json", "w") as wh:
+        json.dump(distances, wh, indent = 4)
+
     sio.emit("unlock")
-    sys.stdout.write("[BACKEND] Finished updating models")
+    print("[BACKEND] Finished updating models")
 
 
 sio.connect(f"http://localhost:{config['PORT']}")

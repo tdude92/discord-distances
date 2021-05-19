@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const {exec} = require('child_process');
+const {spawn} = require('child_process');
 const Discord = require('discord.js');
 const {Server} = require('socket.io');
 const utils = require('./utils/utils.js');
@@ -66,15 +66,17 @@ io.on('connection', (socket) => {
         if (!message.content.startsWith(config.PREFIX)) {
             let msgs = message.content.trim()
                                       .split('\n')
-                                      .filter(x => x != ''); // Split multiline messages into msgs
+                                      .filter(x => x != '')
+                                      .map(msg => utils.formatMsg(msg)); // Split multiline messages into msgs
 
-            msgs.forEach(msg => {
-                // TODO this needs to be locked
-                fs.appendFile(`./data/${message.author.id}`, msg + '\n', err => {
-                    if (err) throw err;
-                    console.log(`Logged message from ${message.author.username} (${message.author})`);
+            lock.attempt(arr => { // Lockable in case backend.py is reading logs
+                arr.forEach(msg => {
+                    fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg + '\n'), err => {
+                        if (err) throw err;
+                        console.log(`Logged message from ${message.author.username} (${message.author})`);
+                    });
                 });
-            });
+            }, [msgs]);
             return;
         }
 
@@ -118,7 +120,7 @@ io.on('connection', (socket) => {
             }
         }
     });
-    
+
     client.login(config.TOKEN);
     
     // TODO: send "NO DATA TO SERVE!" if models have not been updated yet.
@@ -136,16 +138,15 @@ io.on('connection', (socket) => {
 });
 
 // Spawn child process and run backend server.
-const backend = exec('python3 backend.py');
-
-backend.stdout.on('data', (data) => {
-    console.log(data.toString());
-});
-
-backend.stderr.on('data', (data) => {
-    console.log(data.toString());
+const backend = spawn('python3', ['./backend.py'], {
+    cwd: process.cwd(),
+    detached: true,
+    stdio: 'inherit'
 });
 
 backend.on('exit', (code) => {
     console.log(`Backend exited with code ${code}`);
+    process.exit(1);
 });
+
+// TODO what happens if the node process exits before the python process?

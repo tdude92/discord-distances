@@ -24,5 +24,42 @@ module.exports = {
         setTimeout(() => {
             timer.emit('timeout');
         }, ms);
+    },
+    formatMsg(msg) {
+        // Splits punctuation from words in a discord message, stripping all whitespace
+        // 'hello, world!' --> ['hello', ',', 'world', '!']
+        let specialChars = '!@#$%^&*(<)-=_+`~[]{}\\|;:",<.>/?—';
+        let split = msg.trim().split(' ');
+        let parsed = [];
+        for (let chunk of split) {
+            // Check if chunks have any special characters and separate them
+    
+            // Exceptions
+            if (chunk[0] == '<' && '@#:'.includes(chunk[1]) ||
+                chunk == '@everyone' || chunk == '@here') {
+                // Mentions, channels, emotes
+                // @everyone, @here
+                parsed.push(chunk);
+                continue;
+            }
+    
+            while (chunk.length > 0 && specialChars.includes(chunk[0])) {
+                // Edge case: special char is first char
+                parsed.push(chunk[0]);
+                chunk = chunk.substring(1);
+            }
+    
+            let slow = 0;
+            for (let fast = 1; fast < chunk.length; ++fast) {
+                if (specialChars.includes(chunk[fast])) {
+                    parsed.push(chunk.substring(slow, fast)); // Split off word before special char
+                    parsed.push(chunk[fast]); // Push special char to parsed
+                    slow = ++fast;
+                }
+            }
+    
+            if (slow < chunk.length) parsed.push(chunk.substring(slow)); // Push last section to parsed
+        }
+        return parsed.join(' ');
     }
 };
