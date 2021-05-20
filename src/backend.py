@@ -21,9 +21,6 @@ def cosine_distance_mat(mat1, mat2):
 with open("./config.json", "r") as rh:
     config = json.load(rh)
 
-# Create models/
-os.makedirs("./cache/models/", exist_ok = True)
-
 sio = socketio.Client()
 
 @sio.event
@@ -72,7 +69,7 @@ def on_update():
     for file in os.listdir("./cache/models/"):
         os.remove(f"./cache/models/{file}")
     for file in os.listdir("./cache/"):
-        if file != "models":
+        if file != "models" and file != "avatars":
             os.remove(f"./cache/{file}")
 
     # Write combined data into cache/combined_data.txt

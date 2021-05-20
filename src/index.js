@@ -4,9 +4,27 @@ const fs = require('fs');
 const {spawn} = require('child_process');
 const Discord = require('discord.js');
 const {Server} = require('socket.io');
+const https = require('https');
 const utils = require('./utils/utils.js');
-
 const structs = require('./utils/structures.js');
+
+async function getAvatars(client) {
+    fs.readdirSync('./data/').forEach(uid => {
+        // Download avatar if not exists
+        fs.access(`./cache/avatars/${uid}`, fs.constants.F_OK, async (err) => {
+            if (err) {
+                try {
+                    let u = await client.users.fetch(uid);
+                    let avatarUrl = u.displayAvatarURL();
+                    let avatarFile = fs.createWriteStream(`./cache/avatars/${uid}`);
+                    let res = https.get(avatarUrl, (res) => {
+                        res.pipe(avatarFile);
+                    });
+                } catch (e) {}
+            }
+        });
+    });
+}
 
 // Import config.json
 let config;
@@ -22,14 +40,24 @@ try {
     process.exit(1);
 }
 
-// Create data/ if not exists
-if (!fs.existsSync('./data/')) {
-    fs.mkdirSync('./data/');
-}
+// Create data/, cache/, cache/models/, and cache/avatars/ if not exists
+[
+    './data/',
+    './cache/',
+    './cache/models/',
+    './cache/avatars/'
+].forEach(dir => {
+    try {
+        fs.mkdirSync(dir)
+    } catch (e) {
+        if (!(e.code == 'EEXIST')) throw e;
+    }
+});
 
 // Set up Discord
 const client = new Discord.Client();
 client.commands = new Discord.Collection();
+
 
 // Load commands
 const commandFiles = fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
@@ -74,6 +102,17 @@ io.on('connection', (socket) => {
                     fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg + '\n'), err => {
                         if (err) throw err;
                         console.log(`Logged message from ${message.author.username} (${message.author})`);
+                    });
+
+                    // Download avatar if not exists
+                    fs.access(`./cache/avatars/${message.author.id}`, fs.constants.F_OK, (err) => {
+                        if (err) {
+                            let avatarUrl = message.author.displayAvatarURL();
+                            let avatarFile = fs.createWriteStream(`./cache/avatars/${message.author.id}`);
+                            let res = http.get(avatarUrl, (res) => {
+                                res.pipe(avatarFile);
+                            });
+                        }
                     });
                 });
             }, [msgs]);
@@ -120,21 +159,25 @@ io.on('connection', (socket) => {
             }
         }
     });
-
-    client.login(config.TOKEN);
     
     // TODO: send "NO DATA TO SERVE!" if models have not been updated yet.
     // Update models on startup and queue future updates with setInterval
-    socket.emit('update');
-    
-    let time = new Date();
-    setTimeout(() => {
-        setInterval(() => {
-            socket.emit('update');
-        }, config.UPDATE_INTERVAL*60*60*1000);
-    }, (config.UPDATE_INTERVAL - (time.getHours()%config.UPDATE_INTERVAL || config.UPDATE_INTERVAL))*60*60*1000 + utils.getHourMilliseconds(time));
-    // The 10km long line above computes the number of milliseconds between current time and next update.
-    // Updates occur every config.UPDATE_INTERVAL hours after 00:00 the day index.js is run.
+    client.once('ready', () => {
+        socket.emit('update');
+        getAvatars(client);
+        
+        let time = new Date();
+        setTimeout(() => {
+            setInterval(() => {
+                socket.emit('update');
+                getAvatars(client);
+            }, config.UPDATE_INTERVAL*60*60*1000);
+        }, (config.UPDATE_INTERVAL - (time.getHours()%config.UPDATE_INTERVAL || config.UPDATE_INTERVAL))*60*60*1000 + utils.getHourMilliseconds(time));
+        // The 10km long line above computes the number of milliseconds between current time and next update.
+        // Updates occur every config.UPDATE_INTERVAL hours after 00:00 the day index.js is run.
+    });
+
+    client.login(config.TOKEN);
 });
 
 // Spawn child process and run backend server.
