@@ -61,6 +61,13 @@ def on_update():
     print("[BACKEND] Updating models")
     sio.emit("lock")
 
+    # Clear cache
+    for file in os.listdir("./cache/models/"):
+        os.remove(f"./cache/models/{file}")
+    for file in os.listdir("./cache/"):
+        if file != "models":
+            os.remove(f"./cache/{file}")
+
     # Write combined data into cache/combined_data.txt
     with open("./cache/combined_data.txt", "w") as wh:
         lines = []
@@ -86,6 +93,8 @@ def on_update():
         max_vocab_size = 50000,
         epochs = 10
     )
+    print(base_model.corpus_count, base_model.corpus_total_words, base_model.wv.vectors.shape)
+    print("[BACKEND] Loaded base model.")
 
     # Iterate through each textlog and train a model
     uids = os.listdir("./data/")
@@ -107,16 +116,22 @@ def on_update():
         with open(f"./data/{uid}", "r") as rh:
             lines = rh.readlines()
         
+        if len(lines) < 2000:
+            # Require at least 2000 messages sent
+            continue
+        
         model.train(
             corpus_iterable = lines,
             total_examples = model.corpus_count,
             epochs = 15
         )
+        print(model.corpus_count, model.corpus_total_words, model.wv.vectors.shape)
 
         # Write keyedvectors to cache
         model.wv.save(f"./cache/models/{uid}.kv")
+        print(f"[BACKEND] Trained model for {uid}")
         del model
-    
+
     # Compute cosine distance sums
     distances = {uid:{} for uid in uids}
     for uid1 in uids:
@@ -129,6 +144,7 @@ def on_update():
                 vecs2 = KeyedVectors.load(f"./cache/models/{uid2}.kv").vectors
 
                 # Sum of cosine distances of every word
+                print(vecs1.shape, vecs2.shape)
                 for i in range(vecs1.shape[0]):
                     total += distance.cosine(vecs1[i], vecs2[i])
 
