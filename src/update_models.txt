@@ -10,4 +10,5 @@ BE CAREFUL WITH MEMORY! DELETE UNUSED MODELS
 Computing distances:
 1. Precompute sum of word cosine distances for each pair of embeddings and yeet into cache/distances.json
     This will be a 2d dictionary
-2. Compute TSNE and save a plot using pyplot
+2. Compute TSNE and save points to cache (for js to use)
+    --> nodejs will create custom plots (server-wide plot, user specific zoom)

@@ -1,5 +1,6 @@
 import socketio
 import numpy as np
+from sklearn.manifold import MDS
 from scipy.spatial import distance
 from gensim.models import Word2Vec, KeyedVectors
 import json
@@ -120,10 +121,6 @@ def on_update():
     distances = {uid:{} for uid in uids}
     for uid1 in uids:
         for uid2 in uids:
-            if distances[uid2].get(uid1):
-                # Already computed distance between two models
-                continue
-
             if uid1 != uid2:
                 total = 0
                 
@@ -138,9 +135,36 @@ def on_update():
                 distances[uid1][uid2] = total
     
     # Write distances to cache
-    # TODO maybe delete if unused
     with open("./cache/distances.json", "w") as wh:
         json.dump(distances, wh, indent = 4)
+
+    # Compute MDS and write points to cache/points.txt
+    uid2idx = {uid:idx for (idx, uid) in enumerate(uids)}
+    idx2uid = uids # idx2uid would be uid
+
+    # Populate dissimilarity matrix
+    dissimilarity_matrix = np.zeros((len(uids), len(uids)), dtype = np.float32)
+    for uid1 in uids:
+        for uid2 in uids:
+            if uid1 == uid2:
+                continue
+            dist = distances[uid1][uid2]
+            idx1 = uid2idx[uid1]
+            idx2 = uid2idx[uid2]
+            dissimilarity_matrix[idx1][idx2] = dist
+
+    # Use MDS to reduce dimensionality for plotting
+    mds_embedding = MDS(n_jobs = 4, dissimilarity = 'precomputed')
+    points2d = mds_embedding.fit_transform(dissimilarity_matrix)
+    
+    with open("./cache/2dpoints", "w") as wh:
+        # Written in form:
+        # x y uid
+        for i in range(points2d.shape[0]):
+            x = points2d[i][0]
+            y = points2d[i][1]
+            uid = idx2uid[i]
+            wh.write(f"{x} {y} {uid}\n")
 
     sio.emit("unlock")
     print("[BACKEND] Finished updating models")
