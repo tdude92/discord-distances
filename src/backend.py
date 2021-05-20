@@ -1,7 +1,6 @@
 import socketio
 import numpy as np
 from sklearn.manifold import MDS
-from scipy.spatial import distance
 from gensim.models import Word2Vec, KeyedVectors
 import json
 import time
@@ -9,6 +8,14 @@ import random
 import re
 import sys
 import os
+
+# Useful cosine distance function between two matrices (list of vectors)
+def cosine_distance_mat(mat1, mat2):
+    # mat1 and mat2 are numpy arrays with shape (n * d)
+    # where n is the number of vectors, d is the dimensions of each vector
+    dots = (mat1 * mat2).sum(axis = 1)
+    norms = np.linalg.norm(mat1, axis = 1) * np.linalg.norm(mat2, axis = 1)
+    return mat1.shape[0] - np.sum(dots / norms)
 
 # Load config
 with open("./config.json", "r") as rh:
@@ -91,14 +98,13 @@ def on_update():
         min_count = 1,
         workers = 4,
         max_vocab_size = 50000,
-        epochs = 10
+        epochs = 8
     )
-    print(base_model.corpus_count, base_model.corpus_total_words, base_model.wv.vectors.shape)
     print("[BACKEND] Loaded base model.")
 
     # Iterate through each textlog and train a model
-    uids = os.listdir("./data/")
-    for uid in uids:
+    uids = []
+    for uid in os.listdir("./data/"):
         # Create a copy of base_model and continue training
         model = Word2Vec(
             vector_size = 100,
@@ -119,13 +125,14 @@ def on_update():
         if len(lines) < 2000:
             # Require at least 2000 messages sent
             continue
+        else:
+            uids.append(uid)
         
         model.train(
             corpus_iterable = lines,
             total_examples = model.corpus_count,
             epochs = 15
         )
-        print(model.corpus_count, model.corpus_total_words, model.wv.vectors.shape)
 
         # Write keyedvectors to cache
         model.wv.save(f"./cache/models/{uid}.kv")
@@ -137,18 +144,28 @@ def on_update():
     for uid1 in uids:
         for uid2 in uids:
             if uid1 != uid2:
-                total = 0
-                
+                if distances[uid2].get(uid1):
+                    distances[uid1][uid2] = distances[uid2][uid1]
+                    continue
+
                 # Load vectors
                 vecs1 = KeyedVectors.load(f"./cache/models/{uid1}.kv").vectors
                 vecs2 = KeyedVectors.load(f"./cache/models/{uid2}.kv").vectors
 
-                # Sum of cosine distances of every word
-                print(vecs1.shape, vecs2.shape)
-                for i in range(vecs1.shape[0]):
-                    total += distance.cosine(vecs1[i], vecs2[i])
+                # Sum of cosine distances of every words
+                total_dist = cosine_distance_mat(vecs1, vecs2)
 
-                distances[uid1][uid2] = total
+                print(f"[BACKEND] Computed distance between {uid1} and {uid2}.")
+                distances[uid1][uid2] = total_dist # Conversion from np.float32 to float deferred to normalization step
+
+    # Normalize distance between 1 and 0
+    scaled_max = 1
+    scaled_min = 0.05
+    upper = max([max(row.values()) for row in distances.values()])
+    lower = min([min(row.values()) for row in distances.values()])
+    for uid1 in distances.keys():
+        for uid2 in distances[uid1].keys():
+            distances[uid1][uid2] = (scaled_max - scaled_min)/(upper - lower)*(distances[uid1][uid2] - upper) + scaled_max
     
     # Write distances to cache
     with open("./cache/distances.json", "w") as wh:
@@ -172,6 +189,7 @@ def on_update():
     # Use MDS to reduce dimensionality for plotting
     mds_embedding = MDS(n_jobs = 4, dissimilarity = 'precomputed')
     points2d = mds_embedding.fit_transform(dissimilarity_matrix)
+    print("[BACKEND] Finished MDS")
     
     with open("./cache/2dpoints", "w") as wh:
         # Written in form:
