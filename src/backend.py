@@ -68,6 +68,8 @@ def on_update():
     # Clear cache
     for file in os.listdir("./cache/models/"):
         os.remove(f"./cache/models/{file}")
+    for file in os.listdir("./cache/avatars/"):
+        os.remove(f"./cache/avatars/{file}")
     for file in os.listdir("./cache/"):
         if file != "models" and file != "avatars":
             os.remove(f"./cache/{file}")
@@ -128,7 +130,9 @@ def on_update():
         model.train(
             corpus_iterable = lines,
             total_examples = model.corpus_count,
-            epochs = 15
+            epochs = 8,
+            start_alpha = 0.01,
+            end_alpha = 0.001
         )
 
         # Write keyedvectors to cache

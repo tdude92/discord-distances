@@ -18,11 +18,9 @@ class Lock extends EventEmitter {
         this._socket = socket; // Socket descriptor to backend.py
         this._locked = false;
 
-        this._socket.on('unlock', (e) => {
-            if (e) {console.error(e);}
+        this._socket.on('unlock', () => {
             this.unlock();
-        }).on('lock', (e) => {
-            if (e) {console.error(e);}
+        }).on('lock', () => {
             this.lock();
         });
     }

@@ -9,14 +9,16 @@ const utils = require('./utils/utils.js');
 const structs = require('./utils/structures.js');
 
 async function getAvatars(client) {
-    fs.readdirSync('./data/').forEach(uid => {
+    fs.readdirSync('./cache/models/').forEach(file => {
         // Download avatar if not exists
+        let uid = file.substring(0, file.length - 3); // Remove .kv file extension
+
         fs.access(`./cache/avatars/${uid}`, fs.constants.F_OK, async (err) => {
             if (err) {
                 try {
                     let u = await client.users.fetch(uid);
                     let avatarUrl = u.displayAvatarURL();
-                    let avatarFile = fs.createWriteStream(`./cache/avatars/${uid}`);
+                    let avatarFile = fs.createWriteStream(`./cache/avatars/${uid}.jpg`);
                     let res = https.get(avatarUrl, (res) => {
                         res.pipe(avatarFile);
                     });
@@ -163,14 +165,26 @@ io.on('connection', (socket) => {
     // TODO: send "NO DATA TO SERVE!" if models have not been updated yet.
     // Update models on startup and queue future updates with setInterval
     client.once('ready', () => {
-        socket.emit('update');
-        getAvatars(client);
+        let update = async (lock, client) => {
+            // Ensure that getAvatars() runs after backend is finished updating
+            if (lock._locked) throw new Error('Lock already locked when trying to update.');
+
+            lock.once('unlock', async () => {
+                // No nonce needed bc program ensures only one update is running at a time
+                await lock.lock();
+                await getAvatars(client);
+                await lock.unlock();
+            });
+
+            socket.emit('update');
+        };
+
+        update(lock, client);
         
         let time = new Date();
         setTimeout(() => {
             setInterval(() => {
-                socket.emit('update');
-                getAvatars(client);
+                update(lock, client);
             }, config.UPDATE_INTERVAL*60*60*1000);
         }, (config.UPDATE_INTERVAL - (time.getHours()%config.UPDATE_INTERVAL || config.UPDATE_INTERVAL))*60*60*1000 + utils.getHourMilliseconds(time));
         // The 10km long line above computes the number of milliseconds between current time and next update.
