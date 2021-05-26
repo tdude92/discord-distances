@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const {spawn} = require('child_process');
 const Discord = require('discord.js');
 const {Server} = require('socket.io');
@@ -92,8 +93,8 @@ io.on('connection', (socket) => {
         // Ignore messages from bots
         if (message.author.bot) {return;}
 
-        // Collect message that is not a command
-        if (!message.content.startsWith(config.PREFIX)) {
+        // Collect message that is not a command or from a non-whitelisted user
+        if (!message.content.startsWith(config.PREFIX) && config.WHITELIST.includes(message.author.id)) {
             let msgs = message.content.trim()
                                       .split('\n')
                                       .filter(x => x != '')
@@ -101,20 +102,9 @@ io.on('connection', (socket) => {
 
             lock.attempt(arr => { // Lockable in case backend.py is reading logs
                 arr.forEach(msg => {
-                    fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg + '\n'), err => {
+                    fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg) + '\n', err => {
                         if (err) throw err;
-                        console.log(`Logged message from ${message.author.username} (${message.author})`);
-                    });
-
-                    // Download avatar if not exists
-                    fs.access(`./cache/avatars/${message.author.id}`, fs.constants.F_OK, (err) => {
-                        if (err) {
-                            let avatarUrl = message.author.displayAvatarURL();
-                            let avatarFile = fs.createWriteStream(`./cache/avatars/${message.author.id}`);
-                            let res = http.get(avatarUrl, (res) => {
-                                res.pipe(avatarFile);
-                            });
-                        }
+                        console.log(`Logged message from ${message.author.username} (${message.author.id})`);
                     });
                 });
             }, [msgs]);
@@ -129,12 +119,27 @@ io.on('connection', (socket) => {
         
         const command = args.shift();
 
+        // >d3 allow handled here since config and config.json needs to be updated
+        if (command == 'allow') {
+            if (config.WHITELIST.includes(message.author.id)) {
+                // User already whitelisted
+                message.channel.send(`User ${message.author.username} already whitelisted!`);
+            } else {
+                // Whitelist user
+                config.WHITELIST.push(message.author.id);
+                await fsPromises.writeFile('./config.json', JSON.stringify(config));
+                message.channel.send(`User ${message.author.username} whitelisted.`);
+            }
+            await message.react('👍');
+            return;
+        }
+
         // Command is unknown
         if (!client.commands.has(command)) {
             message.channel.send(`Unknown Command: ${message.content}\nType "${config.PREFIX} help" for a list of commands.`);
             return;
         }
-
+        
         try {
             let cmdObj = client.commands.get(command);
 
@@ -144,9 +149,9 @@ io.on('connection', (socket) => {
             // Execute the command
             // If lock is active, lockable commands will wait for unlock
             if (cmdObj.lockable) {
-                await lock.attemptCmd(cmdObj.execute, [message, args, socket], message);
+                await lock.attemptCmd(cmdObj.execute, [message, args, socket, client], message);
             } else {
-                await cmdObj.execute(message, args, socket);
+                await cmdObj.execute(message, args, socket, client);
             }
             await message.react('👍');
         } catch (e) {
@@ -169,9 +174,8 @@ io.on('connection', (socket) => {
             // Ensure that getAvatars() runs after backend is finished updating
             if (lock._locked) throw new Error('Lock already locked when trying to update.');
 
-            lock.once('unlock', async () => {
+            socket.once('get_avatars', async () => {
                 // No nonce needed bc program ensures only one update is running at a time
-                await lock.lock();
                 await getAvatars(client);
                 await lock.unlock();
             });

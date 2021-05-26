@@ -90,6 +90,13 @@ def on_update():
         random.shuffle(lines)
         wh.writelines(lines)
         del lines
+    
+    # No data to train models with
+    with open("./cache/combined_data.txt", "r") as rh:
+        if not len(rh.read().strip()):
+            sio.emit("unlock")
+            print("[BACKEND] No train data")
+            return
 
     base_model = Word2Vec(
         corpus_file = "./cache/combined_data.txt",
@@ -121,12 +128,7 @@ def on_update():
         with open(f"./data/{uid}", "r") as rh:
             lines = rh.readlines()
         
-        if len(lines) < 2000:
-            # Require at least 2000 messages sent
-            continue
-        else:
-            uids.append(uid)
-        
+        uids.append(uid)
         model.train(
             corpus_iterable = lines,
             total_examples = model.corpus_count,
@@ -166,8 +168,13 @@ def on_update():
     lower = min([min(row.values()) for row in distances.values()])
     for uid1 in distances.keys():
         for uid2 in distances[uid1].keys():
-            distances[uid1][uid2] = (scaled_max - scaled_min)/(upper - lower)*(distances[uid1][uid2] - upper) + scaled_max
-    
+            if upper != lower:
+                distances[uid1][uid2] = (scaled_max - scaled_min)/(upper - lower)*(distances[uid1][uid2] - upper) + scaled_max
+            else:
+                # If upper == lower, then cannot normalize into a range of numbers.
+                # Just set distance of everything equal to 1.
+                distances[uid1][uid2] = 1
+
     # Write distances to cache
     with open("./cache/distances.json", "w") as wh:
         json.dump(distances, wh, indent = 4)
@@ -201,7 +208,7 @@ def on_update():
             uid = idx2uid[i]
             wh.write(f"{x} {y} {uid}\n")
 
-    sio.emit("unlock")
+    sio.emit("get_avatars")
     print("[BACKEND] Finished updating models")
 
 

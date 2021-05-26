@@ -44,7 +44,7 @@ class Lock extends EventEmitter {
             this.once('unlock', () => {
                 return func(...args);
             });
-            message.channel.send('Currently performing heavy computations. Will serve result shortly :)');
+            message.channel.send('Currently busy. Will serve result shortly...');
         } else {
             return func(...args);
         }

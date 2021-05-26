@@ -35,7 +35,7 @@ module.exports = {
             // Check if commands has command
             if (commands.has(cmdName)) {
                 let cmdObj = commands.get(cmdName);
-                let reply = 'DISCORD DISTANCES HELP\n----------------------\n';
+                let reply = 'COMMAND HELP\n-----------------\n';
                 
                 reply += `Command Name: ${cmdObj.name}\n`;
                 reply += `Usage: ${prefix} ${cmdObj.name} `;
@@ -48,7 +48,15 @@ module.exports = {
             }
         } else {
             // General information about all commands
-            let reply = 'DISCORD DISTANCES HELP\n----------------------\n';
+            let reply = `
+DISCORD DISTANCES
+-----------------
+I'm a bot that can check how similarly two Discord users' texting styles are.
+However, to do this, I'll need to record your texts and work with your data.
+If you want to use my features and consent to having your data stored, type ">dd allow".
+            
+COMMAND HELP
+-----------------\n`;
             commands.forEach(cmdObj => {
                 reply += `${prefix} ${cmdObj.name}`;
                 cmdObj.args.forEach(arg => {reply += ` <${arg}>`});

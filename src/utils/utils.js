@@ -28,7 +28,7 @@ module.exports = {
     formatMsg(msg) {
         // Splits punctuation from words in a discord message, stripping all whitespace
         // 'hello, world!' --> ['hello', ',', 'world', '!']
-        let specialChars = '!@#$%^&*(<)-=_+`~[]{}\\|;:",<.>/?—';
+        let specialChars = '!@#$%^&*(<)-=_+`~[]{}\\|;:\'",<.>/?—';
         let split = msg.trim().split(' ');
         let parsed = [];
         for (let chunk of split) {
@@ -61,5 +61,10 @@ module.exports = {
             if (slow < chunk.length) parsed.push(chunk.substring(slow)); // Push last section to parsed
         }
         return parsed.join(' ');
+    },
+    progressBar(min, max, width, val) {
+        const cellWidth = (max - min) / width;
+        const nCells = Math.floor((val - min) / cellWidth);
+        return `\`\`\`[${'#'.repeat(nCells)}${'—'.repeat(width - nCells)}]  ${val}\`\`\``;
     }
 };
