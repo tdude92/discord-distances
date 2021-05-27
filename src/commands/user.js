@@ -24,7 +24,7 @@ module.exports = {
     desc: 'Displays closest users to you in terms of texting style. Optionally mention another user to check their similarities.',
     lockable: true,
     admin: false,
-    async execute(message, args, socket, client) {
+    async execute(message, args) {
         let distances;
         try {
             distances = await fsPromises.readFile('./cache/distances.json');

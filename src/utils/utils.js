@@ -5,7 +5,7 @@ const {EventEmitter} = require('events');
 
 module.exports = {
     getNonce() {
-        return crypto.randomBytes(16).toString('base64');
+        return crypto.randomBytes(32).toString('base64');
     },
     getHourMilliseconds(datetime) {
         // Returns number of ms passed in the current hour

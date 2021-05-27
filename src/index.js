@@ -1,5 +1,4 @@
 'use strict';
-
 const fs = require('fs');
 const fsPromises = require('fs/promises');
 const {spawn} = require('child_process');
@@ -9,24 +8,36 @@ const https = require('https');
 const utils = require('./utils/utils.js');
 const structs = require('./utils/structures.js');
 
-async function getAvatars(client) {
-    fs.readdirSync('./cache/models/').forEach(file => {
+function getAvatars(client) {
+    return Promise.all(fs.readdirSync('./cache/models/').map(async file => {
         // Download avatar if not exists
         let uid = file.substring(0, file.length - 3); // Remove .kv file extension
+        let u = await client.users.fetch(uid);
+        let avatarUrl = u.displayAvatarURL();
+        return new Promise((resolve, reject) => {
+            let avatarFile = fs.createWriteStream(`./cache/avatars/${uid}.jpg`);
+            let req = https.get(avatarUrl, (res) => {
+                if (res.statusCode < 200 || res.statusCode >= 300) {
+                    return reject(new Error('Error ' + res.statusCode));
+                }
 
-        fs.access(`./cache/avatars/${uid}`, fs.constants.F_OK, async (err) => {
-            if (err) {
-                try {
-                    let u = await client.users.fetch(uid);
-                    let avatarUrl = u.displayAvatarURL();
-                    let avatarFile = fs.createWriteStream(`./cache/avatars/${uid}.jpg`);
-                    let res = https.get(avatarUrl, (res) => {
-                        res.pipe(avatarFile);
-                    });
-                } catch (e) {}
-            }
+                res.on('data', (chunk) => {
+                    avatarFile.write(chunk);
+                });
+
+                res.on('end', () => {
+                    avatarFile.end();
+                    resolve(true);
+                });
+            });
+
+            req.on('error', (err) => {
+                reject(err);
+            })
+
+            req.end();
         });
-    });
+    }));
 }
 
 // Import config.json
@@ -48,7 +59,8 @@ try {
     './data/',
     './cache/',
     './cache/models/',
-    './cache/avatars/'
+    './cache/avatars/',
+    './cache/figs/'
 ].forEach(dir => {
     try {
         fs.mkdirSync(dir)
@@ -174,7 +186,7 @@ io.on('connection', (socket) => {
             // Ensure that getAvatars() runs after backend is finished updating
             if (lock._locked) throw new Error('Lock already locked when trying to update.');
 
-            socket.once('get_avatars', async () => {
+            socket.once('finish_update', async () => {
                 // No nonce needed bc program ensures only one update is running at a time
                 await getAvatars(client);
                 await lock.unlock();

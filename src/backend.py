@@ -208,8 +208,16 @@ def on_update():
             uid = idx2uid[i]
             wh.write(f"{x} {y} {uid}\n")
 
-    sio.emit("get_avatars")
+    sio.emit("finish_update")
     print("[BACKEND] Finished updating models")
+
+
+@sio.on("scatter")
+def on_scatter(data):
+    nonce = data["nonce"]
+    users = data["users"]
+    guild = data["guild"]
+    # TODO scatter plot generation
 
 
 sio.connect(f"http://localhost:{config['PORT']}")
