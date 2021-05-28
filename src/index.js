@@ -104,22 +104,24 @@ io.on('connection', (socket) => {
     client.on('message', async message => {
         // Ignore messages from bots
         if (message.author.bot) {return;}
+        if (!message.content.startsWith(config.PREFIX)) {
+            // Message is not a command
+            if (config.WHITELIST.includes(message.author.id)) {
+                // Collect message if user is whitelisted
+                let msgs = message.content.trim()
+                                          .split('\n')
+                                          .filter(x => x != '')
+                                          .map(msg => utils.formatMsg(msg)); // Split multiline messages into msgs
 
-        // Collect message that is not a command or from a non-whitelisted user
-        if (!message.content.startsWith(config.PREFIX) && config.WHITELIST.includes(message.author.id)) {
-            let msgs = message.content.trim()
-                                      .split('\n')
-                                      .filter(x => x != '')
-                                      .map(msg => utils.formatMsg(msg)); // Split multiline messages into msgs
-
-            lock.attempt(arr => { // Lockable in case backend.py is reading logs
-                arr.forEach(msg => {
-                    fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg) + '\n', err => {
-                        if (err) throw err;
-                        console.log(`Logged message from ${message.author.username} (${message.author.id})`);
+                lock.attempt(arr => { // Lockable in case backend.py is reading logs
+                    arr.forEach(msg => {
+                        fs.appendFile(`./data/${message.author.id}`, utils.formatMsg(msg) + '\n', err => {
+                            if (err) throw err;
+                            console.log(`Logged message from ${message.author.username} (${message.author.id})`);
+                        });
                     });
-                });
-            }, [msgs]);
+                }, [msgs]);
+            }
             return;
         }
 
