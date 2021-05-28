@@ -2,6 +2,8 @@ import socketio
 import numpy as np
 from sklearn.manifold import MDS
 from gensim.models import Word2Vec, KeyedVectors
+import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
 import json
 import time
 import random
@@ -70,8 +72,10 @@ def on_update():
         os.remove(f"./cache/models/{file}")
     for file in os.listdir("./cache/avatars/"):
         os.remove(f"./cache/avatars/{file}")
+    for file in os.listdir("./cache/figs/"):
+        os.remove(f"./cache/figs/{file}")
     for file in os.listdir("./cache/"):
-        if file != "models" and file != "avatars":
+        if file not in ["models", "avatars", "figs"]:
             os.remove(f"./cache/{file}")
 
     # Write combined data into cache/combined_data.txt
@@ -213,11 +217,39 @@ def on_update():
 
 
 @sio.on("scatter")
-def on_scatter(data):
-    nonce = data["nonce"]
-    users = data["users"]
-    guild = data["guild"]
-    # TODO scatter plot generation
+def on_scatter(nonce, guild_id):
+    try:
+        # Load points
+        with open("./cache/2dpoints", "r") as rh:
+            # Using synchronous socketio, no need for mutex
+            x_arr, y_arr, uids = zip(*[line.split() for line in rh.readlines()])
+            x_arr = [float(x) for x in x_arr]
+            y_arr = [float(y) for y in y_arr]
+        
+        # Compute axes limits
+        w = 0.025 # Width of a point / 2
+        x_min = min(x_arr) - 2*w
+        y_min = min(y_arr) - 2*w
+        x_max = max(x_arr) + 2*w
+        y_max = max(x_arr) + 2*w
+
+        fig, ax = plt.subplots()
+        ax.set_xlim(left = x_min, right = x_max)
+        ax.set_ylim(bottom = y_min, top = y_max)
+
+        for i in range(len(uids)):
+            x = x_arr[i]
+            y = y_arr[i]
+            uid = uids[i]
+
+            avatar = plt.imread(f"./cache/avatars/{uid}.jpg")
+            ax.imshow(avatar, extent = (x - w, x + w, y - w, y + w))
+
+        fig.savefig(f"./cache/figs/{guild_id}.jpg", bbox_inches = "tight")
+        sio.emit(nonce)
+    except Exception as e:
+        sys.stderr.write(str(e))
+        sio.emit(nonce, str(e))
 
 
 sio.connect(f"http://localhost:{config['PORT']}")

@@ -1,4 +1,3 @@
-// TODO
 'use strict';
 const Discord = require('discord.js');
 const utils = require('../utils/utils.js');
