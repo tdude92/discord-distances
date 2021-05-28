@@ -231,7 +231,7 @@ def on_scatter(nonce, guild_id):
         x_min = min(x_arr) - 2*w
         y_min = min(y_arr) - 2*w
         x_max = max(x_arr) + 2*w
-        y_max = max(x_arr) + 2*w
+        y_max = max(y_arr) + 2*w
 
         fig, ax = plt.subplots()
         ax.set_xlim(left = x_min, right = x_max)

@@ -163,9 +163,9 @@ io.on('connection', (socket) => {
             // Execute the command
             // If lock is active, lockable commands will wait for unlock
             if (cmdObj.lockable) {
-                await lock.attemptCmd(cmdObj.execute, [message, args, socket, client], message);
+                await lock.attemptCmd(cmdObj.execute, [message, args, socket, client, lock], message);
             } else {
-                await cmdObj.execute(message, args, socket, client);
+                await cmdObj.execute(message, args, socket, client, lock);
             }
             await message.react('👍');
         } catch (e) {
