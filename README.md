@@ -9,7 +9,7 @@ This bot was designed to work within a Linux environment. Though, it probably st
 2. Move into the repo from the terminal ```cd ./discord-distances/```
 3. Install NodeJS dependencies ```npm install```
 4. Install Python dependencies ```pip3 install -r requirements.txt```
-5. Run ```python3 config.py``` and your bot token + other required information.
+5. Run ```python3 config.py``` and input your bot token + other required information.
 6. Move into src/ ```cd src/```
 7. Start the bot server ```node index.js```
 8. Type ```>dd help``` and read the disclaimer.
