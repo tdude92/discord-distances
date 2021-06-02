@@ -53,14 +53,14 @@ DISCORD DISTANCES
 -----------------
 I'm a bot that can check how similarly two Discord users' texting styles are.
 However, to do this, I'll need to record your texts and work with your data.
-If you want to use my features and consent to having your data stored, type ">dd allow".
+If you want to use my features and consent to having your messaging data logged, type ">dd allow".
             
 COMMAND HELP
 -----------------\n`;
             commands.forEach(cmdObj => {
-                reply += `${prefix} ${cmdObj.name}`;
+                reply += `**${prefix} ${cmdObj.name}`;
                 cmdObj.args.forEach(arg => {reply += ` <${arg}>`});
-                reply += `: ${cmdObj.desc}\n`;
+                reply += `**: ${cmdObj.desc}\n`;
             });
             message.channel.send(reply);
         }

@@ -181,7 +181,6 @@ io.on('connection', (socket) => {
         }
     });
     
-    // TODO: send "NO DATA TO SERVE!" if models have not been updated yet.
     // Update models on startup and queue future updates with setInterval
     client.once('ready', () => {
         let update = async (lock, client) => {
@@ -224,4 +223,4 @@ backend.on('exit', (code) => {
     process.exit(1);
 });
 
-// TODO what happens if the node process exits before the python process?
+// TODO account for if the node process exits before the python process?

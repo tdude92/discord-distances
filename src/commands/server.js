@@ -28,7 +28,7 @@ module.exports = {
         let reply = new Discord.MessageEmbed()
                     .setColor('#2e8b57')
                     .attachFiles([`./cache/figs/${plotImgPath}`])
-                    .setAuthor(`${message.author.tag}`, message.author.displayAvatarURL())
+                    .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
                     .setTitle(`Guild Plot for **${guild.name}**`)
                     .setThumbnail(guild.iconURL())
                     .setImage(`attachment://${guild.id}.jpg`);

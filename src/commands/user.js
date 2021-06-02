@@ -75,13 +75,12 @@ module.exports = {
             let reply = new Discord.MessageEmbed()
                         .setColor('#2e8b57')
                         .attachFiles([`./cache/avatars/${uid}.jpg`])
-                        .setAuthor(`${message.author.tag}`, message.author.displayAvatarURL())
+                        .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
                         .setThumbnail(`attachment://${uid}.jpg`)
                         .addField('\u200B', '\u200B')
                         .addField('Nearest', getClosest(userDistances))
                         .addField('\u200B', '\u200B')
-                        .addField('Farthest', getFarthest(userDistances))
-                        .addField('\u200B', 'https://github.com/tdude92/discord-distances');
+                        .addField('Farthest', getFarthest(userDistances));
             
             message.channel.send(reply);
         }
