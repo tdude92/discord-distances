@@ -42,7 +42,7 @@ Notice that *dutwo*, *duthree*, and *dududududu*, who used Brothers Grimm fairy 
 2. Fully automatic! No need to manually update the bot's models. 
 3. Offers efficient access to information due to caching mechanisms.
 
-For ethical reasons, only users that type ```>dd accept``` will be visible to thye **discord-distances** bot.
+For ethical reasons, only users that type ```>dd accept``` will be visible to the **discord-distances** bot.
 
 ## **Commands**
 
