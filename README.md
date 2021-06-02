@@ -34,7 +34,7 @@ Four example users are present in the following demonstrations. *dutwo*, *duthre
 
 ![guild plot example](demo/guild_plot.jpg)
 
-Notice that *dutwo*, *duthree*, and *dududududu*, who used Brothers Grimm fairy tales for their training data are grouped together and separated from *BeeBoi*, who used the Bee Movie script for their training data.
+Notice that *dutwo*, *duthree*, and *dududududu*, who used Brothers Grimm fairy tales for their training data, are grouped together and separated from *BeeBoi*, who used the Bee Movie script for their training data.
 
 ## **Features**
 
